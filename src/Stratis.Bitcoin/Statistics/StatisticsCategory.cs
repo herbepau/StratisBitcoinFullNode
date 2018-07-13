@@ -23,13 +23,13 @@ namespace Stratis.Bitcoin.Statistics
         }
 
         public void AddOrUpdate(IStatistic statistic)
-        {
+        {            
             lock (this.@lock)
             {
                 var stat = this.statistics.FirstOrDefault(x => x.Name == statistic.Name);
                 if (stat != null)
-                    stat = statistic;
-                else 
+                    this.statistics[this.statistics.IndexOf(stat)] = statistic;
+                else
                     this.statistics.Add(statistic);
             }
         }
