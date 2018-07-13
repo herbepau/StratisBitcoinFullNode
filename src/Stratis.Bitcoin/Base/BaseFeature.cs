@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,6 +20,8 @@ using Stratis.Bitcoin.P2P;
 using Stratis.Bitcoin.P2P.Peer;
 using Stratis.Bitcoin.P2P.Protocol.Payloads;
 using Stratis.Bitcoin.Signals;
+using Stratis.Bitcoin.Statistics;
+using Stratis.Bitcoin.Statistics.Interfaces;
 using Stratis.Bitcoin.Utilities;
 
 [assembly: InternalsVisibleTo("Stratis.Bitcoin.Tests")]
@@ -172,10 +175,24 @@ namespace Stratis.Bitcoin.Base
         /// <inheritdoc />
         public void AddNodeStats(StringBuilder benchLogs)
         {
-            benchLogs.AppendLine("Headers.Height: ".PadRight(LoggingConfiguration.ColumnLength + 1) +
-                                    this.chain.Tip.Height.ToString().PadRight(8) +
-                                    " Headers.Hash: ".PadRight(LoggingConfiguration.ColumnLength - 1) + this.chain.Tip.HashBlock);
+            var statistics = this.NodeStatistics.ToList();
+
+            IStatistic height = statistics.First(), hashBlock = statistics.Last();
+
+            benchLogs.AppendLine($"{height.Name}: ".PadRight(LoggingConfiguration.ColumnLength + 1) +
+                                 $"{height.Value}".PadRight(8) +
+                                 $" {hashBlock.Name}: ".PadRight(LoggingConfiguration.ColumnLength - 1) + hashBlock.Value);
         }
+
+        /// <inheritdoc />
+        public IEnumerable<IStatistic> NodeStatistics
+        {
+            get
+            {
+                yield return new Statistic("Headers.Height", this.chain.Tip.Height.ToString());
+                yield return new Statistic("Headers.Hash", this.chain.Tip.HashBlock.ToString());
+            }
+        }            
 
         /// <inheritdoc />
         public override void Initialize()

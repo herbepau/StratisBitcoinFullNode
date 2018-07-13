@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +22,9 @@ using Stratis.Bitcoin.Features.Consensus.Rules;
 using Stratis.Bitcoin.Features.Consensus.Rules.CommonRules;
 using Stratis.Bitcoin.Interfaces;
 using Stratis.Bitcoin.P2P.Protocol.Payloads;
+using Stratis.Bitcoin.Statistics;
+using Stratis.Bitcoin.Statistics.Interfaces;
+using Stratis.Bitcoin.Utilities.Extensions;
 
 [assembly: InternalsVisibleTo("Stratis.Bitcoin.Features.Miner.Tests")]
 [assembly: InternalsVisibleTo("Stratis.Bitcoin.Features.Consensus.Tests")]
@@ -106,12 +110,28 @@ namespace Stratis.Bitcoin.Features.Consensus
         /// <inheritdoc />
         public void AddNodeStats(StringBuilder benchLogs)
         {
-            if (this.chainState?.ConsensusTip != null)
-            {
-                benchLogs.AppendLine("Consensus.Height: ".PadRight(LoggingConfiguration.ColumnLength + 1) +
-                                     this.chainState.ConsensusTip.Height.ToString().PadRight(8) +
-                                     " Consensus.Hash: ".PadRight(LoggingConfiguration.ColumnLength - 1) +
-                                     this.chainState.ConsensusTip.HashBlock);
+            var statistics = this.NodeStatistics.ToList();
+            if (statistics.IsEmpty())
+                return;
+
+            IStatistic height = statistics.First(), hashBlock = statistics.Last();
+
+            benchLogs.AppendLine($"{height.Name}: ".PadRight(LoggingConfiguration.ColumnLength + 1) +
+                                 height.Value.PadRight(8) +
+                                 $" {hashBlock.Name}: ".PadRight(LoggingConfiguration.ColumnLength - 1) +
+                                 hashBlock.Value);
+            
+        }
+
+        public IEnumerable<IStatistic> NodeStatistics
+        {
+            get
+            {                
+                if (this.chainState?.ConsensusTip != null)
+                {                    
+                    yield return new Statistic("Consensus.Height", this.chainState.ConsensusTip.Height.ToString());
+                    yield return new Statistic("Consensus.Hash", this.chainState.ConsensusTip.HashBlock.ToString());
+                }
             }
         }
 

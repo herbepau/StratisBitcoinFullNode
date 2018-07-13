@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -20,7 +21,10 @@ using Stratis.Bitcoin.Features.Wallet.Controllers;
 using Stratis.Bitcoin.Features.Wallet.Interfaces;
 using Stratis.Bitcoin.Interfaces;
 using Stratis.Bitcoin.P2P.Protocol.Payloads;
+using Stratis.Bitcoin.Statistics;
+using Stratis.Bitcoin.Statistics.Interfaces;
 using Stratis.Bitcoin.Utilities;
+using Stratis.Bitcoin.Utilities.Extensions;
 
 namespace Stratis.Bitcoin.Features.LightWallet
 {
@@ -169,17 +173,31 @@ namespace Stratis.Bitcoin.Features.LightWallet
         /// <inheritdoc />
         public void AddNodeStats(StringBuilder benchLog)
         {
-            var manager = this.walletManager as WalletManager;
+            var statistics = this.NodeStatistics.ToList();
+            if (statistics.IsEmpty())
+                return;
 
-            if (manager != null)
-            {
-                int height = manager.LastBlockHeight();
-                ChainedHeader block = this.chain.GetBlock(height);
-                uint256 hashBlock = block == null ? 0 : block.HashBlock;
+            IStatistic height = statistics.First(), hashBlock = statistics.Last();
 
-                benchLog.AppendLine("LightWallet.Height: ".PadRight(LoggingConfiguration.ColumnLength + 1) +
-                        (manager.ContainsWallets ? height.ToString().PadRight(8) : "No Wallet".PadRight(8)) +
-                        (manager.ContainsWallets ? (" LightWallet.Hash: ".PadRight(LoggingConfiguration.ColumnLength - 1) + hashBlock) : string.Empty));
+            benchLog.AppendLine($"{height.Name}: ".PadRight(LoggingConfiguration.ColumnLength + 1) + height.Value.PadRight(8) +
+                                (!string.IsNullOrEmpty(hashBlock.Value) ? $"{hashBlock.Name}".PadRight(LoggingConfiguration.ColumnLength - 1) + hashBlock.Value : string.Empty));            
+
+        }
+
+        public IEnumerable<IStatistic> NodeStatistics
+        {
+            get
+            {                
+                var manager = this.walletManager as WalletManager;
+                if (manager != null)
+                {
+                    int height = manager.LastBlockHeight();
+                    ChainedHeader block = this.chain.GetBlock(height);
+                    uint256 hashBlock = block == null ? 0 : block.HashBlock;
+
+                    yield return new Statistic("LightWallet.Height", manager.ContainsWallets ? height.ToString() : "No Wallet");
+                    yield return new Statistic("LightWallet.Hash", manager.ContainsWallets ? hashBlock.ToString() : string.Empty);                
+                }
             }
         }
 

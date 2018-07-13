@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,7 +14,10 @@ using Stratis.Bitcoin.Connection;
 using Stratis.Bitcoin.Features.BlockStore.Controllers;
 using Stratis.Bitcoin.Interfaces;
 using Stratis.Bitcoin.P2P.Protocol.Payloads;
+using Stratis.Bitcoin.Statistics;
+using Stratis.Bitcoin.Statistics.Interfaces;
 using Stratis.Bitcoin.Utilities;
+using Stratis.Bitcoin.Utilities.Extensions;
 
 [assembly: InternalsVisibleTo("Stratis.Bitcoin.Features.BlockStore.Tests")]
 
@@ -93,16 +98,31 @@ namespace Stratis.Bitcoin.Features.BlockStore
         /// <inheritdoc />
         public void AddNodeStats(StringBuilder benchLogs)
         {
-            ChainedHeader highestBlock = this.chainState.BlockStoreTip;
+            var statistics = this.NodeStatistics.ToList();
+            if (statistics.IsEmpty())
+                return;
 
-            if (highestBlock != null)
-            {
-                benchLogs.AppendLine($"{this.name}.Height: ".PadRight(LoggingConfiguration.ColumnLength + 1) +
-                                     highestBlock.Height.ToString().PadRight(8) +
-                                     $" {this.name}.Hash: ".PadRight(LoggingConfiguration.ColumnLength - 1) +
-                                     highestBlock.HashBlock);
-            }
+            IStatistic height = statistics.First(), hashBlock = statistics.Last();            
+            
+            benchLogs.AppendLine($"{height.Name}: ".PadRight(LoggingConfiguration.ColumnLength + 1) +
+                                 height.Value.PadRight(8) +
+                                 $" {hashBlock.Name}: ".PadRight(LoggingConfiguration.ColumnLength - 1) +
+                                 hashBlock.Value);
+            
         }
+
+        public IEnumerable<IStatistic> NodeStatistics
+        {
+            get
+            {                
+                ChainedHeader highestBlock = this.chainState.BlockStoreTip;
+                if (highestBlock != null)
+                {
+                    yield return new Statistic($"{this.name}.Height", highestBlock.Height.ToString());
+                    yield return new Statistic($"{this.name}.Hash", highestBlock.HashBlock.ToString());
+                }
+            }
+        }           
 
         /// <inheritdoc />
         public void AddFeatureStats(StringBuilder benchLog)
