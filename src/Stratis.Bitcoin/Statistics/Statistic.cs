@@ -1,19 +1,19 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using Stratis.Bitcoin.Statistics.Interfaces;
 
 namespace Stratis.Bitcoin.Statistics
 {
     public class Statistic : IStatistic
     {
-        private readonly List<IStatistic> statistics;
+        private readonly List<IStatistic> statistics = new List<IStatistic>();
 
         public Statistic(string name, string value, IEnumerable<IStatistic> statistics = null)
         {
             this.Name = name;
             this.Value = value;
+
             if (statistics != null)
-                this.statistics = this.statistics.ToList();
+                this.statistics.AddRange(statistics);
         }
 
         public string Name { get; }

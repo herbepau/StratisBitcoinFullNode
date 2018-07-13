@@ -14,6 +14,7 @@ using Stratis.Bitcoin.Builder;
 using Stratis.Bitcoin.Configuration;
 using Stratis.Bitcoin.Connection;
 using Stratis.Bitcoin.Interfaces;
+using Stratis.Bitcoin.Statistics.Interfaces;
 using Stratis.Bitcoin.Utilities;
 
 namespace Stratis.Bitcoin
@@ -79,6 +80,9 @@ namespace Stratis.Bitcoin
 
         /// <summary>Application life cycle control - triggers when application shuts down.</summary>
         private NodeLifetime nodeLifetime;
+
+        /// <summary>Service to support the processing, managing and retrieving of node statistics.</summary>
+        private IStatisticsService statisticsService;
 
         /// <inheritdoc />
         public INodeLifetime NodeLifetime
@@ -178,6 +182,8 @@ namespace Stratis.Bitcoin
 
             this.AsyncLoopFactory = this.Services.ServiceProvider.GetService<IAsyncLoopFactory>();
 
+            this.statisticsService = this.Services.ServiceProvider.GetService<IStatisticsService>();
+
             this.logger.LogInformation($"Full node initialized on {this.Network.Name}");
 
             this.State = FullNodeState.Initialized;
@@ -238,8 +244,13 @@ namespace Stratis.Bitcoin
                                      this.ConnectionManager.Parameters.UserAgent);
 
                 // Display node stats grouped together.
+                var nodeStats = new List<IStatistic>();
                 foreach (INodeStats feature in this.Services.Features.OfType<INodeStats>())
+                {
                     feature.AddNodeStats(benchLogs);
+                    nodeStats.AddRange(feature.NodeStatistics);                                        
+                }
+                this.statisticsService.AddOrUpdate("Node", nodeStats);
 
                 // Now display the other stats.
                 foreach (IFeatureStats feature in this.Services.Features.OfType<IFeatureStats>())
