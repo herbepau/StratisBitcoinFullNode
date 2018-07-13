@@ -1,4 +1,5 @@
 ﻿using System;
+using Xunit;
 
 namespace Stratis.Bitcoin.Statistics.Tests
 {
@@ -9,6 +10,7 @@ namespace Stratis.Bitcoin.Statistics.Tests
         {
             const string Name = "name";
             var statistic = new Statistic(Name, string.Empty);
+
             Assert.Equal(Name, statistic.Name);
         }
 
@@ -17,6 +19,7 @@ namespace Stratis.Bitcoin.Statistics.Tests
         {
             const string Value = "value";
             var statistic = new Statistic(string.Empty, Value);
+
             Assert.Equal(Value, statistic.Value);
         }
     }
