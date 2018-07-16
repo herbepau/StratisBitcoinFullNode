@@ -248,7 +248,7 @@ namespace Stratis.Bitcoin
                 foreach (INodeStats feature in this.Services.Features.OfType<INodeStats>())
                 {
                     feature.AddNodeStats(benchLogs);
-                    nodeStats.AddRange(feature.NodeStatistics);                                        
+                    nodeStats.AddRange(feature.NodeStatistics);
                 }
                 this.statisticsService.Apply("Node", nodeStats);
 

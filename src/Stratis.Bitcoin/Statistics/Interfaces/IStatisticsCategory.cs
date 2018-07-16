@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Stratis.Bitcoin.Statistics.Interfaces
 {
@@ -6,7 +7,9 @@ namespace Stratis.Bitcoin.Statistics.Interfaces
     {
         string CategoryName { get; }
 
-        IEnumerable<IStatistic> Statistics { get; }
+        IEnumerable<IStatistic> Statistics { get; }        
+
+        IObservable<IStatisticsCategory> ChangedStream { get; }
 
         void Apply(IStatistic statistic);
 

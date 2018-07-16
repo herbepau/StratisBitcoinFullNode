@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using Stratis.Bitcoin.Statistics.Interfaces;
 
 namespace Stratis.Bitcoin.Statistics
@@ -8,16 +11,22 @@ namespace Stratis.Bitcoin.Statistics
     {
         private readonly object @lock = new object();
         private readonly List<IStatistic> statistics = new List<IStatistic>();
+        private readonly Subject<IStatisticsCategory> changedStream = new Subject<IStatisticsCategory>();
 
         public StatisticsCategory(string categoryName, IEnumerable<IStatistic> statistics = null)
         {
+            if (string.IsNullOrEmpty(categoryName))
+                throw new ArgumentException($"{nameof(categoryName)} expected");
+
             this.CategoryName = categoryName;
+            this.ChangedStream = this.changedStream.AsObservable();
 
             if (statistics != null)
                 this.statistics.AddRange(statistics);
         } 
 
         public string CategoryName { get; }
+        public IObservable<IStatisticsCategory> ChangedStream { get; }
 
         public IEnumerable<IStatistic> Statistics
         {
@@ -35,17 +44,28 @@ namespace Stratis.Bitcoin.Statistics
 
         public void Apply(IEnumerable<IStatistic> stats)
         {
+            var changed = false;
+
             lock (this.@lock)
             {
                 foreach (var stat in stats)
                 {
-                    var storedStat = this.statistics.FirstOrDefault(x => x.Name == stat.Name);
-                    if (storedStat != null)
-                        this.statistics[this.statistics.IndexOf(storedStat)] = stat;
-                    else
+                    var index = this.statistics.FindIndex(x => x.Name == stat.Name);
+                    if (index == -1)
+                    {
+                        changed = true;
                         this.statistics.Add(stat);
+                    }
+                    else if (this.statistics[index].Value != stat.Value)
+                    {
+                        changed = true;
+                        this.statistics[index].Value = stat.Value;
+                    }
                 }
             }
+
+            if (changed)
+                this.changedStream.OnNext(this);
         }
     }
 }

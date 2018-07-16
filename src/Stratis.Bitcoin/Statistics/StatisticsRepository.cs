@@ -18,12 +18,9 @@ namespace Stratis.Bitcoin.Statistics
         public void Apply(string categoryName, IEnumerable<IStatistic> statistics)
         {
             if (this.categories.TryGetValue(categoryName, out IStatisticsCategory category))
-            {
                 category.Apply(statistics);
-                return;
-            }
-
-            this.categories.TryAdd(categoryName, new StatisticsCategory(categoryName, statistics));
+            else
+                this.categories.TryAdd(categoryName, new StatisticsCategory(categoryName, statistics));
         }
     }
 }

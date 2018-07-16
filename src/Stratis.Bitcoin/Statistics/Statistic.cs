@@ -22,7 +22,7 @@ namespace Stratis.Bitcoin.Statistics
 
         public string Name { get; }
 
-        public string Value { get; }
+        public string Value { get; set; }
 
         public IEnumerable<IStatistic> Statistics => this.statistics;
     }
