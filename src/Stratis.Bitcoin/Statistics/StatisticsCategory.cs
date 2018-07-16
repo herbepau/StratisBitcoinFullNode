@@ -9,7 +9,13 @@ namespace Stratis.Bitcoin.Statistics
         private readonly object @lock = new object();
         private readonly List<IStatistic> statistics = new List<IStatistic>();
 
-        public StatisticsCategory(string categoryName) => this.CategoryName = categoryName;        
+        public StatisticsCategory(string categoryName, IEnumerable<IStatistic> statistics = null)
+        {
+            this.CategoryName = categoryName;
+
+            if (statistics != null)
+                this.statistics.AddRange(statistics);
+        } 
 
         public string CategoryName { get; }
 
@@ -22,15 +28,23 @@ namespace Stratis.Bitcoin.Statistics
             }
         }
 
-        public void AddOrUpdate(IStatistic statistic)
-        {            
+        public void Apply(IStatistic statistic)
+        {
+            this.Apply(new []{ statistic });
+        }
+
+        public void Apply(IEnumerable<IStatistic> stats)
+        {
             lock (this.@lock)
             {
-                var stat = this.statistics.FirstOrDefault(x => x.Name == statistic.Name);
-                if (stat != null)
-                    this.statistics[this.statistics.IndexOf(stat)] = statistic;
-                else
-                    this.statistics.Add(statistic);
+                foreach (var stat in stats)
+                {
+                    var storedStat = this.statistics.FirstOrDefault(x => x.Name == stat.Name);
+                    if (storedStat != null)
+                        this.statistics[this.statistics.IndexOf(storedStat)] = stat;
+                    else
+                        this.statistics.Add(stat);
+                }
             }
         }
     }

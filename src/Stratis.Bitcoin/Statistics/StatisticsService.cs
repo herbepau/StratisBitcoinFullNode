@@ -1,15 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 using Stratis.Bitcoin.Statistics.Interfaces;
 
 namespace Stratis.Bitcoin.Statistics
 {
     public class StatisticsService : IStatisticsService
     {
-        public IStatisticsCategory AddOrUpdate(string categoryName, IEnumerable<IStatistic> statistics)
+        private readonly IStatisticsRepository repository;
+
+        public StatisticsService(IStatisticsRepository repository) => this.repository = repository;
+
+        public void Apply(string categoryName, IEnumerable<IStatistic> statistics)
         {
-            throw new NotImplementedException();
+            this.repository.Apply(categoryName, statistics);
         }
     }
 }

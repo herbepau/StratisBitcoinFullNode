@@ -8,6 +8,8 @@ namespace Stratis.Bitcoin.Statistics.Interfaces
 
         IEnumerable<IStatistic> Statistics { get; }
 
-        void AddOrUpdate(IStatistic statistic);
+        void Apply(IStatistic statistic);
+
+        void Apply(IEnumerable<IStatistic> statistics);
     }
 }

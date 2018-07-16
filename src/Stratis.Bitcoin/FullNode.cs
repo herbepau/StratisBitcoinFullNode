@@ -250,7 +250,7 @@ namespace Stratis.Bitcoin
                     feature.AddNodeStats(benchLogs);
                     nodeStats.AddRange(feature.NodeStatistics);                                        
                 }
-                this.statisticsService.AddOrUpdate("Node", nodeStats);
+                this.statisticsService.Apply("Node", nodeStats);
 
                 // Now display the other stats.
                 foreach (IFeatureStats feature in this.Services.Features.OfType<IFeatureStats>())

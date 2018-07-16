@@ -354,6 +354,7 @@ namespace Stratis.Bitcoin.Base
                     services.AddSingleton<IAsyncLoopFactory, AsyncLoopFactory>();
                     services.AddSingleton<NodeDeployments>();
                     services.AddSingleton<IStatisticsService, StatisticsService>();
+                    services.AddSingleton<IStatisticsRepository, StatisticsRepository>();
 
                     // Connection
                     services.AddSingleton<INetworkPeerFactory, NetworkPeerFactory>();
