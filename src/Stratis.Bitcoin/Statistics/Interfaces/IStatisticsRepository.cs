@@ -4,10 +4,10 @@ namespace Stratis.Bitcoin.Statistics.Interfaces
 {
     public interface IStatisticsRepository
     {
-        IEnumerable<IStatisticsCategory> Categories { get; }
+        IEnumerable<IStatisticGroup> Groups { get; }
 
-        void Apply(string categoryName, IStatistic statistic);
+        void Apply(string groupName, IStatistic statistic);
 
-        void Apply(string categoryName, IEnumerable<IStatistic> statistics);
+        void Apply(string groupName, IEnumerable<IStatistic> statistics);
     }
 }

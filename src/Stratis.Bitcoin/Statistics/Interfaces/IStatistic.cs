@@ -6,8 +6,6 @@ namespace Stratis.Bitcoin.Statistics.Interfaces
     {
         string Name { get; }
 
-        string Value { get; set; }
-
-        IEnumerable<IStatistic> Statistics { get; }
+        string Value { get; }
     }
 }

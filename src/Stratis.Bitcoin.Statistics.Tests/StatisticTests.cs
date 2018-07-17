@@ -35,13 +35,5 @@ namespace Stratis.Bitcoin.Statistics.Tests
 
             Assert.Equal(value, statistic.Value);
         }
-
-        [Fact]
-        public void Test_Statistics_is_assigned()
-        {            
-            var statistic = new Statistic("name", string.Empty, new [] { new Statistic("name", string.Empty) });
-
-            Assert.Single(statistic.Statistics);
-        }
     }
 }

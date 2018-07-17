@@ -3,30 +3,38 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using Newtonsoft.Json;
 using Stratis.Bitcoin.Statistics.Interfaces;
 
 namespace Stratis.Bitcoin.Statistics
 {
-    public class StatisticsCategory : IStatisticsCategory
+    public class StatisticGroup : IStatisticGroup
     {
         private readonly object @lock = new object();
         private readonly List<IStatistic> statistics = new List<IStatistic>();
-        private readonly Subject<IStatisticsCategory> changedStream = new Subject<IStatisticsCategory>();
+        private readonly Subject<IStatisticGroup> changedStream = new Subject<IStatisticGroup>();
 
-        public StatisticsCategory(string categoryName, IEnumerable<IStatistic> statistics = null)
+        public StatisticGroup(string groupName, IEnumerable<IStatistic> statistics = null)
         {
-            if (string.IsNullOrEmpty(categoryName))
-                throw new ArgumentException($"{nameof(categoryName)} expected");
+            if (string.IsNullOrEmpty(groupName))
+                throw new ArgumentException($"{nameof(groupName)} expected");
 
-            this.CategoryName = categoryName;
+            this.changedStream.StartWith(this).Subscribe(x => this.SetChangedTimeFormatted());
+
+            this.GroupName = groupName;
             this.ChangedStream = this.changedStream.AsObservable();
 
             if (statistics != null)
-                this.statistics.AddRange(statistics);
+                this.Apply(statistics);
+
+            this.SetChangedTimeFormatted();
         } 
 
-        public string CategoryName { get; }
-        public IObservable<IStatisticsCategory> ChangedStream { get; }
+        public string GroupName { get; }
+        public string ChangedTimeFormatted { get; private set; }
+
+        [JsonIgnore]
+        public IObservable<IStatisticGroup> ChangedStream { get; }
 
         public IEnumerable<IStatistic> Statistics
         {
@@ -35,7 +43,7 @@ namespace Stratis.Bitcoin.Statistics
                 lock (this.@lock)
                     return this.statistics.ToList();
             }
-        }
+        }        
 
         public void Apply(IStatistic statistic)
         {
@@ -59,13 +67,17 @@ namespace Stratis.Bitcoin.Statistics
                     else if (this.statistics[index].Value != stat.Value)
                     {
                         changed = true;
-                        this.statistics[index].Value = stat.Value;
+                        this.statistics[index] = stat;
                     }
                 }
             }
 
-            if (changed)
-                this.changedStream.OnNext(this);
+            if (!changed)
+                return;
+
+            this.changedStream.OnNext(this);
         }
+
+        private void SetChangedTimeFormatted() => this.ChangedTimeFormatted = DateTime.Now.ToString("HHmmss");
     }
 }

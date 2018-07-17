@@ -14,6 +14,7 @@ using Stratis.Bitcoin.Builder;
 using Stratis.Bitcoin.Configuration;
 using Stratis.Bitcoin.Connection;
 using Stratis.Bitcoin.Interfaces;
+using Stratis.Bitcoin.Statistics;
 using Stratis.Bitcoin.Statistics.Interfaces;
 using Stratis.Bitcoin.Utilities;
 
@@ -244,7 +245,7 @@ namespace Stratis.Bitcoin
                                      this.ConnectionManager.Parameters.UserAgent);
 
                 // Display node stats grouped together.
-                var nodeStats = new List<IStatistic>();
+                var nodeStats = new List<IStatistic> { new Statistic("agent", this.ConnectionManager.Parameters.UserAgent) };
                 foreach (INodeStats feature in this.Services.Features.OfType<INodeStats>())
                 {
                     feature.AddNodeStats(benchLogs);

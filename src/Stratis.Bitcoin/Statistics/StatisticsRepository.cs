@@ -6,21 +6,21 @@ namespace Stratis.Bitcoin.Statistics
 {
     public class StatisticsRepository : IStatisticsRepository
     {
-        private readonly ConcurrentDictionary<string, IStatisticsCategory> categories = new ConcurrentDictionary<string, IStatisticsCategory>();
+        private readonly ConcurrentDictionary<string, IStatisticGroup> groups = new ConcurrentDictionary<string, IStatisticGroup>();
 
-        public IEnumerable<IStatisticsCategory> Categories => this.categories.Values;
+        public IEnumerable<IStatisticGroup> Groups => this.groups.Values;
 
-        public void Apply(string categoryName, IStatistic statistic)
+        public void Apply(string groupName, IStatistic statistic)
         {
-            this.Apply(categoryName, new[] {statistic});
+            this.Apply(groupName, new[] {statistic});
         }
 
-        public void Apply(string categoryName, IEnumerable<IStatistic> statistics)
+        public void Apply(string groupName, IEnumerable<IStatistic> statistics)
         {
-            if (this.categories.TryGetValue(categoryName, out IStatisticsCategory category))
-                category.Apply(statistics);
+            if (this.groups.TryGetValue(groupName, out IStatisticGroup group))
+                group.Apply(statistics);
             else
-                this.categories.TryAdd(categoryName, new StatisticsCategory(categoryName, statistics));
+                this.groups.TryAdd(groupName, new StatisticGroup(groupName, statistics));
         }
     }
 }
