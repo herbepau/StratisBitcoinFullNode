@@ -5,8 +5,8 @@ using Stratis.Bitcoin.Statistics.Interfaces;
 namespace Stratis.Bitcoin.Statistics
 {
     public class StatisticsRepository : IStatisticsRepository
-    {
-        private readonly ConcurrentDictionary<string, IStatisticGroup> groups = new ConcurrentDictionary<string, IStatisticGroup>();
+    {        
+        private readonly ConcurrentDictionary<string, IStatisticGroup> groups = new ConcurrentDictionary<string, IStatisticGroup>();        
 
         public IEnumerable<IStatisticGroup> Groups => this.groups.Values;
 

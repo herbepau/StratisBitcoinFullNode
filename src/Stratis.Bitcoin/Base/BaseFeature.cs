@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using NBitcoin;
 using Stratis.Bitcoin.Base.Deployments;
@@ -353,8 +354,10 @@ namespace Stratis.Bitcoin.Base
                     services.AddSingleton<ITimeSyncBehaviorState, TimeSyncBehaviorState>();
                     services.AddSingleton<IAsyncLoopFactory, AsyncLoopFactory>();
                     services.AddSingleton<NodeDeployments>();
+
                     services.AddSingleton<IStatisticsService, StatisticsService>();
                     services.AddSingleton<IStatisticsRepository, StatisticsRepository>();
+                    services.AddSingleton<IStatisticsTableFactory, StatisticsTableFactory>();
 
                     // Connection
                     services.AddSingleton<INetworkPeerFactory, NetworkPeerFactory>();

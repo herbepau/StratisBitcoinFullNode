@@ -6,7 +6,7 @@ namespace Stratis.Bitcoin.Controllers
     [Route("api/[controller]")]
     public class StatisticsController : Controller
     {
-        private readonly IStatisticsService statisticsService;
+        private readonly IStatisticsService statisticsService;        
 
         public StatisticsController(IStatisticsService statisticsService) => this.statisticsService = statisticsService;
 

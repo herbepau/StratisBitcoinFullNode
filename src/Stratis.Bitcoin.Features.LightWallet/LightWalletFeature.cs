@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NBitcoin;
@@ -67,6 +68,8 @@ namespace Stratis.Bitcoin.Features.LightWallet
 
         private readonly WalletSettings walletSettings;
 
+        private readonly IStatisticsService statisticsService;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="LightWalletFeature"/> class.
         /// </summary>
@@ -94,7 +97,8 @@ namespace Stratis.Bitcoin.Features.LightWallet
             BroadcasterBehavior broadcasterBehavior,
             ILoggerFactory loggerFactory,
             NodeSettings nodeSettings,
-            WalletSettings walletSettings)
+            WalletSettings walletSettings, 
+            IStatisticsService statisticsService)
         {
             this.walletSyncManager = walletSyncManager;
             this.walletManager = walletManager;
@@ -109,6 +113,7 @@ namespace Stratis.Bitcoin.Features.LightWallet
             this.loggerFactory = loggerFactory;
             this.nodeSettings = nodeSettings;
             this.walletSettings = walletSettings;
+            this.statisticsService = statisticsService;
         }
 
         /// <summary>
@@ -196,7 +201,7 @@ namespace Stratis.Bitcoin.Features.LightWallet
                     uint256 hashBlock = block == null ? 0 : block.HashBlock;
 
                     yield return new Statistic("LightWallet.Height", manager.ContainsWallets ? height.ToString() : "No Wallet");
-                    yield return new Statistic("LightWallet.Hash", manager.ContainsWallets ? hashBlock.ToString() : string.Empty);                
+                    yield return new Statistic("LightWallet.Hash", manager.ContainsWallets ? hashBlock.ToString() : string.Empty);
                 }
             }
         }
@@ -210,14 +215,19 @@ namespace Stratis.Bitcoin.Features.LightWallet
             {
                 benchLog.AppendLine();
                 benchLog.AppendLine("======Wallets======");
-
+                                
                 foreach (string walletName in walletNames)
                 {
                     IEnumerable<UnspentOutputReference> items = this.walletManager.GetSpendableTransactionsInWallet(walletName, 1);
-                    benchLog.AppendLine("Wallet: " + (walletName + ",").PadRight(LoggingConfiguration.ColumnLength) + " Confirmed balance: " + new Money(items.Sum(s => s.Transaction.Amount)).ToString());
+                    var confirmedBalance = new Money(items.Sum(s => s.Transaction.Amount)).ToString();
+                    benchLog.AppendLine("Wallet: " + (walletName + ",").PadRight(LoggingConfiguration.ColumnLength) + " Confirmed balance: " + confirmedBalance);
+
+                    IStatisticGroup group = this.statisticsService.LightWalletStatistics.Apply(walletName);
+                    group.Apply(new Statistic("name", walletName));
+                    group.Apply(new Statistic("Confirmed balance", confirmedBalance));
                 }
             }
-        }
+        }        
     }
 
     /// <summary>

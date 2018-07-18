@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Stratis.Bitcoin.Statistics.Interfaces
+﻿namespace Stratis.Bitcoin.Statistics.Interfaces
 {
     public interface IStatistic
     {

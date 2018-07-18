@@ -12,6 +12,8 @@ using Stratis.Bitcoin.Features.Consensus;
 using Stratis.Bitcoin.Features.MemoryPool.Fee;
 using Stratis.Bitcoin.Features.MemoryPool.Interfaces;
 using Stratis.Bitcoin.Interfaces;
+using Stratis.Bitcoin.Statistics;
+using Stratis.Bitcoin.Statistics.Interfaces;
 
 [assembly: InternalsVisibleTo("Stratis.Bitcoin.Features.MemoryPool.Tests")]
 
@@ -47,6 +49,8 @@ namespace Stratis.Bitcoin.Features.MemoryPool
         /// <summary>Settings for the node.</summary>
         private readonly NodeSettings nodeSettings;
 
+        private readonly IStatisticsService statisticsService;
+
         /// <summary>
         /// Constructs a memory pool feature.
         /// </summary>
@@ -66,7 +70,8 @@ namespace Stratis.Bitcoin.Features.MemoryPool
             MempoolManager mempoolManager,
             NodeSettings nodeSettings,
             ILoggerFactory loggerFactory,
-            MempoolSettings mempoolSettings)
+            MempoolSettings mempoolSettings,
+            IStatisticsService statisticsService)
         {
             this.signals = signals;
             this.connectionManager = connectionManager;
@@ -76,6 +81,7 @@ namespace Stratis.Bitcoin.Features.MemoryPool
             this.mempoolLogger = loggerFactory.CreateLogger(this.GetType().FullName);
             this.mempoolSettings = mempoolSettings;
             this.nodeSettings = nodeSettings;
+            this.statisticsService = statisticsService;
         }
 
         public void AddFeatureStats(StringBuilder benchLogs)
@@ -84,7 +90,10 @@ namespace Stratis.Bitcoin.Features.MemoryPool
             {
                 benchLogs.AppendLine();
                 benchLogs.AppendLine("=======Mempool=======");
-                benchLogs.AppendLine(this.mempoolManager.PerformanceCounter.ToString());
+                var perfCounter = this.mempoolManager.PerformanceCounter.ToString();
+                benchLogs.AppendLine(perfCounter);
+
+                //this.statisticsService.Apply("Mempool", new Statistic("perfCounter", perfCounter));
             }
         }
 

@@ -49,6 +49,8 @@ namespace Stratis.Bitcoin.Features.BlockStore
 
         private readonly IChainState chainState;
 
+        private readonly IStatisticsService statisticsService;
+
         /// <summary>Instance logger.</summary>
         private readonly ILogger logger;
 
@@ -71,6 +73,7 @@ namespace Stratis.Bitcoin.Features.BlockStore
             ILoggerFactory loggerFactory,
             StoreSettings storeSettings,
             IChainState chainState,
+            IStatisticsService statisticsService,
             string name = "BlockStore")
         {
             this.name = name;
@@ -88,6 +91,7 @@ namespace Stratis.Bitcoin.Features.BlockStore
             this.loggerFactory = loggerFactory;
             this.storeSettings = storeSettings;
             this.chainState = chainState;
+            this.statisticsService = statisticsService;
         }
 
         public virtual BlockStoreBehavior BlockStoreBehaviorFactory()
@@ -102,7 +106,7 @@ namespace Stratis.Bitcoin.Features.BlockStore
             if (statistics.IsEmpty())
                 return;
 
-            IStatistic height = statistics.First(), hashBlock = statistics.Last();            
+            IStatistic height = statistics.First(), hashBlock = statistics.Last();
             
             benchLogs.AppendLine($"{height.Name}: ".PadRight(LoggingConfiguration.ColumnLength + 1) +
                                  height.Value.PadRight(8) +
@@ -128,7 +132,9 @@ namespace Stratis.Bitcoin.Features.BlockStore
         public void AddFeatureStats(StringBuilder benchLog)
         {
             this.blockStoreQueue.ShowStats(benchLog);
-        }
+
+            this.statisticsService.Apply("BlockStore", this.blockStoreQueue.Statistics);
+        }        
 
         public override void Initialize()
         {
