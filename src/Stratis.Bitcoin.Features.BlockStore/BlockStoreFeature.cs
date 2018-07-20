@@ -47,9 +47,7 @@ namespace Stratis.Bitcoin.Features.BlockStore
 
         private readonly StoreSettings storeSettings;
 
-        private readonly IChainState chainState;
-
-        private readonly IStatisticsService statisticsService;
+        private readonly IChainState chainState;       
 
         /// <summary>Instance logger.</summary>
         private readonly ILogger logger;
@@ -73,7 +71,6 @@ namespace Stratis.Bitcoin.Features.BlockStore
             ILoggerFactory loggerFactory,
             StoreSettings storeSettings,
             IChainState chainState,
-            IStatisticsService statisticsService,
             string name = "BlockStore")
         {
             this.name = name;
@@ -91,7 +88,6 @@ namespace Stratis.Bitcoin.Features.BlockStore
             this.loggerFactory = loggerFactory;
             this.storeSettings = storeSettings;
             this.chainState = chainState;
-            this.statisticsService = statisticsService;
         }
 
         public virtual BlockStoreBehavior BlockStoreBehaviorFactory()
@@ -108,33 +104,33 @@ namespace Stratis.Bitcoin.Features.BlockStore
 
             IStatistic height = statistics.First(), hashBlock = statistics.Last();
             
-            benchLogs.AppendLine($"{height.Name}: ".PadRight(LoggingConfiguration.ColumnLength + 1) +
+            benchLogs.AppendLine($"{height.Id}: ".PadRight(LoggingConfiguration.ColumnLength + 1) +
                                  height.Value.PadRight(8) +
-                                 $" {hashBlock.Name}: ".PadRight(LoggingConfiguration.ColumnLength - 1) +
+                                 $" {hashBlock.Id}: ".PadRight(LoggingConfiguration.ColumnLength - 1) +
                                  hashBlock.Value);
             
-        }
+        }        
 
         public IEnumerable<IStatistic> NodeStatistics
         {
             get
-            {                
+            {
                 ChainedHeader highestBlock = this.chainState.BlockStoreTip;
                 if (highestBlock != null)
                 {
-                    yield return new Statistic($"{this.name}.Height", highestBlock.Height.ToString());
-                    yield return new Statistic($"{this.name}.Hash", highestBlock.HashBlock.ToString());
+                    yield return new Statistic($"{this.name}.Height", highestBlock.Height.ToString(), $"{this.name} Height");
+                    yield return new Statistic($"{this.name}.Hash", highestBlock.HashBlock.ToString(), $"{this.name} Hash");
                 }
             }
-        }           
+        }
 
         /// <inheritdoc />
         public void AddFeatureStats(StringBuilder benchLog)
         {
             this.blockStoreQueue.ShowStats(benchLog);
+        }
 
-            this.statisticsService.Apply("BlockStore", this.blockStoreQueue.Statistics);
-        }        
+        public IStatisticGroup FeatureStatistics => this.blockStoreQueue.Statistics;
 
         public override void Initialize()
         {

@@ -112,6 +112,8 @@ namespace Stratis.Bitcoin.Base
         /// <inheritdoc cref="IFinalizedBlockHeight"/>
         private readonly IFinalizedBlockHeight finalizedBlockHeight;
 
+        private readonly IStatisticsService statisticsService;
+
         /// <summary>
         /// Initializes a new instance of the object.
         /// </summary>
@@ -147,7 +149,8 @@ namespace Stratis.Bitcoin.Base
             IInitialBlockDownloadState initialBlockDownloadState,
             IPeerBanning peerBanning,
             IPeerAddressManager peerAddressManager,
-            BestChainSelector bestChainSelector)
+            BestChainSelector bestChainSelector,
+            IStatisticsService statisticsService)
         {
             this.chainState = Guard.NotNull(chainState, nameof(chainState));
             this.chainRepository = Guard.NotNull(chainRepository, nameof(chainRepository));
@@ -159,6 +162,7 @@ namespace Stratis.Bitcoin.Base
             this.connectionManager = Guard.NotNull(connectionManager, nameof(connectionManager));
             this.bestChainSelector = bestChainSelector;
             this.peerBanning = Guard.NotNull(peerBanning, nameof(peerBanning));
+            this.statisticsService = statisticsService;
 
             this.peerAddressManager = Guard.NotNull(peerAddressManager, nameof(peerAddressManager));
             this.peerAddressManager.PeerFilePath = this.dataFolder;
@@ -170,7 +174,7 @@ namespace Stratis.Bitcoin.Base
             this.loggerFactory = loggerFactory;
             this.dbreezeSerializer = dbreezeSerializer;
             this.logger = loggerFactory.CreateLogger(this.GetType().FullName);
-            this.disposableResources = new List<IDisposable>();
+            this.disposableResources = new List<IDisposable>();            
         }
 
         /// <inheritdoc />
@@ -180,20 +184,20 @@ namespace Stratis.Bitcoin.Base
 
             IStatistic height = statistics.First(), hashBlock = statistics.Last();
 
-            benchLogs.AppendLine($"{height.Name}: ".PadRight(LoggingConfiguration.ColumnLength + 1) +
+            benchLogs.AppendLine($"{height.Id}: ".PadRight(LoggingConfiguration.ColumnLength + 1) +
                                  $"{height.Value}".PadRight(8) +
-                                 $" {hashBlock.Name}: ".PadRight(LoggingConfiguration.ColumnLength - 1) + hashBlock.Value);
+                                 $" {hashBlock.Id}: ".PadRight(LoggingConfiguration.ColumnLength - 1) + hashBlock.Value);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc />        
         public IEnumerable<IStatistic> NodeStatistics
         {
             get
             {
-                yield return new Statistic("Headers.Height", this.chain.Tip.Height.ToString());
-                yield return new Statistic("Headers.Hash", this.chain.Tip.HashBlock.ToString());
+                yield return new Statistic("Headers.Height", this.chain.Tip.Height.ToString(), "Headers Height");
+                yield return new Statistic("Headers.Hash", this.chain.Tip.HashBlock.ToString(), "Headers Hash");
             }
-        }            
+        }
 
         /// <inheritdoc />
         public override void Initialize()
@@ -357,7 +361,6 @@ namespace Stratis.Bitcoin.Base
 
                     services.AddSingleton<IStatisticsService, StatisticsService>();
                     services.AddSingleton<IStatisticsRepository, StatisticsRepository>();
-                    services.AddSingleton<IStatisticsTableFactory, StatisticsTableFactory>();
 
                     // Connection
                     services.AddSingleton<INetworkPeerFactory, NetworkPeerFactory>();

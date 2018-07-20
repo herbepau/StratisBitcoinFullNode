@@ -69,6 +69,8 @@ namespace Stratis.Bitcoin.Features.Consensus
         /// <summary>Consensus statistics logger.</summary>
         private readonly ConsensusStats consensusStats;
 
+        private readonly IStatisticsService statisticsService;
+
         public ConsensusFeature(
             DBreezeCoinView dBreezeCoinView,
             Network network,
@@ -85,6 +87,7 @@ namespace Stratis.Bitcoin.Features.Consensus
             IConsensusRules consensusRules,
             NodeSettings nodeSettings,
             ConsensusSettings consensusSettings,
+            IStatisticsService statisticsService,
             StakeChainStore stakeChain = null)
         {
             this.dBreezeCoinView = dBreezeCoinView;
@@ -103,6 +106,7 @@ namespace Stratis.Bitcoin.Features.Consensus
             this.nodeSettings = nodeSettings;
             this.consensusSettings = consensusSettings;
             this.consensusRules = consensusRules;
+            this.statisticsService = statisticsService;
 
             this.chainState.MaxReorgLength = network.Consensus.MaxReorgLength;
         }
@@ -116,21 +120,21 @@ namespace Stratis.Bitcoin.Features.Consensus
 
             IStatistic height = statistics.First(), hashBlock = statistics.Last();
 
-            benchLogs.AppendLine($"{height.Name}: ".PadRight(LoggingConfiguration.ColumnLength + 1) +
+            benchLogs.AppendLine($"{height.Id}: ".PadRight(LoggingConfiguration.ColumnLength + 1) +
                                  height.Value.PadRight(8) +
-                                 $" {hashBlock.Name}: ".PadRight(LoggingConfiguration.ColumnLength - 1) +
+                                 $" {hashBlock.Id}: ".PadRight(LoggingConfiguration.ColumnLength - 1) +
                                  hashBlock.Value);
             
         }
-
+        
         public IEnumerable<IStatistic> NodeStatistics
         {
             get
-            {                
+            {
                 if (this.chainState?.ConsensusTip != null)
-                {                    
-                    yield return new Statistic("Consensus.Height", this.chainState.ConsensusTip.Height.ToString());
-                    yield return new Statistic("Consensus.Hash", this.chainState.ConsensusTip.HashBlock.ToString());
+                {
+                    yield return new Statistic("Consensus.Height", this.chainState.ConsensusTip.Height.ToString(), "Consensus Height");
+                    yield return new Statistic("Consensus.Hash", this.chainState.ConsensusTip.HashBlock.ToString(), "Consensus Hash");
                 }
             }
         }

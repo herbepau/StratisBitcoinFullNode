@@ -6,8 +6,10 @@ namespace Stratis.Bitcoin.Statistics.Interfaces
     {
         IEnumerable<IStatisticGroup> Groups { get; }
 
-        void Apply(string groupName, IStatistic statistic);
+        bool AddGroup(IStatisticGroup group);
 
-        void Apply(string groupName, IEnumerable<IStatistic> statistics);
+        IStatisticGroup Apply(string groupName, IStatistic statistic);
+
+        IStatisticGroup Apply(string groupName, IEnumerable<IStatistic> statistics);
     }
 }

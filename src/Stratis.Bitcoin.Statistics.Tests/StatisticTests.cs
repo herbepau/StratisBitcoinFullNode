@@ -19,12 +19,12 @@ namespace Stratis.Bitcoin.Statistics.Tests
         }
 
         [Fact]
-        public void Test_Name_is_assigned()
+        public void Test_Id_is_assigned()
         {
-            const string name = "name";
-            var statistic = new Statistic(name, string.Empty);
+            const string id = "id";
+            var statistic = new Statistic(id, string.Empty);
 
-            Assert.Equal(name, statistic.Name);
+            Assert.Equal(id, statistic.Id);
         }
 
         [Fact]

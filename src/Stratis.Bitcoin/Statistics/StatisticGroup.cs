@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
@@ -10,8 +11,9 @@ namespace Stratis.Bitcoin.Statistics
 {
     public class StatisticGroup : IStatisticGroup
     {
-        private readonly object @lock = new object();
+        private readonly object lockObject = new object();
         private readonly List<IStatistic> statistics = new List<IStatistic>();
+        private readonly ConcurrentBag<IStatisticGroup> groups = new ConcurrentBag<IStatisticGroup>();
         private readonly Subject<IStatisticGroup> changedStream = new Subject<IStatisticGroup>();
 
         public StatisticGroup(string groupName, IEnumerable<IStatistic> statistics = null)
@@ -19,31 +21,37 @@ namespace Stratis.Bitcoin.Statistics
             if (string.IsNullOrEmpty(groupName))
                 throw new ArgumentException($"{nameof(groupName)} expected");
 
-            this.changedStream.StartWith(this).Subscribe(x => this.SetChangedTimeFormatted());
-
             this.GroupName = groupName;
             this.ChangedStream = this.changedStream.AsObservable();
 
             if (statistics != null)
-                this.Apply(statistics);
-
-            this.SetChangedTimeFormatted();
-        } 
-
-        public string GroupName { get; }
-        public string ChangedTimeFormatted { get; private set; }
+                this.statistics.AddRange(statistics);
+        }
 
         [JsonIgnore]
         public IObservable<IStatisticGroup> ChangedStream { get; }
+        public string GroupName { get; }
+        public IStatistic this[string statisticId] => this.Statistics.FirstOrDefault(x => x.Id == statisticId);
+        public IEnumerable<IStatisticGroup> Groups => this.groups.ToList();
 
         public IEnumerable<IStatistic> Statistics
         {
             get
             {
-                lock (this.@lock)
+                lock (this.lockObject)
+                {
                     return this.statistics.ToList();
+                }
             }
-        }        
+        }
+
+        public IStatisticGroup AddGroup(string name)
+        {
+            var group = this.groups.FirstOrDefault(x => x.GroupName == name);
+            if (group == null)
+                this.groups.Add(group = new StatisticGroup(name));
+            return group;
+        }
 
         public void Apply(IStatistic statistic)
         {
@@ -54,11 +62,11 @@ namespace Stratis.Bitcoin.Statistics
         {
             var changed = false;
 
-            lock (this.@lock)
+            lock (this.lockObject)
             {
                 foreach (var stat in stats)
                 {
-                    var index = this.statistics.FindIndex(x => x.Name == stat.Name);
+                    var index = this.statistics.FindIndex(x => x.Id == stat.Id);
                     if (index == -1)
                     {
                         changed = true;
@@ -77,7 +85,5 @@ namespace Stratis.Bitcoin.Statistics
 
             this.changedStream.OnNext(this);
         }
-
-        private void SetChangedTimeFormatted() => this.ChangedTimeFormatted = DateTime.Now.ToString("HHmmss");
     }
 }

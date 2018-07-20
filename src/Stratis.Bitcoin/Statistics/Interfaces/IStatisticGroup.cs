@@ -5,16 +5,20 @@ namespace Stratis.Bitcoin.Statistics.Interfaces
 {
     public interface IStatisticGroup
     {        
-        string GroupName { get; }               
+        IStatistic this[string statisticId] { get; }
 
-        string ChangedTimeFormatted { get; }
+        string GroupName { get; }
 
         IEnumerable<IStatistic> Statistics { get; }
+
+        IEnumerable<IStatisticGroup> Groups { get; }
 
         IObservable<IStatisticGroup> ChangedStream { get; }
 
         void Apply(IStatistic statistic);
 
         void Apply(IEnumerable<IStatistic> statistics);
+
+        IStatisticGroup AddGroup(string name);
     }
 }

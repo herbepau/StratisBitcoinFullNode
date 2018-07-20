@@ -245,17 +245,25 @@ namespace Stratis.Bitcoin
                                      this.ConnectionManager.Parameters.UserAgent);
 
                 // Display node stats grouped together.
-                var nodeStats = new List<IStatistic> { new Statistic("agent", this.ConnectionManager.Parameters.UserAgent) };
+                var statistics = new List<IStatistic>();
                 foreach (INodeStats feature in this.Services.Features.OfType<INodeStats>())
                 {
                     feature.AddNodeStats(benchLogs);
-                    nodeStats.AddRange(feature.NodeStatistics);
+                    statistics.AddRange(feature.NodeStatistics);
                 }
-                this.statisticsService.Apply("Node", nodeStats);
+                this.statisticsService.Apply("Node", statistics);
 
                 // Now display the other stats.
                 foreach (IFeatureStats feature in this.Services.Features.OfType<IFeatureStats>())
+                {
                     feature.AddFeatureStats(benchLogs);
+
+                    IStatisticGroup group = feature.FeatureStatistics;
+                    if (group != null)
+                        this.statisticsService.Apply(group.GroupName, group.Statistics);
+                }
+
+                this.statisticsService.AddGroup(this.ConnectionManager.NodeStatistics);
 
                 benchLogs.AppendLine();
                 benchLogs.AppendLine("======Connection======");

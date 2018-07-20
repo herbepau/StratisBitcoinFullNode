@@ -5,17 +5,20 @@ namespace Stratis.Bitcoin.Statistics
 {
     public class Statistic : IStatistic
     {                
-        public Statistic(string name, string value)
+        public Statistic(string id, string value, string displayName = "")
         {
-            if (string.IsNullOrEmpty(name))
-                throw new ArgumentException($"{nameof(name)} expected");
+            if (string.IsNullOrEmpty(id))
+                throw new ArgumentException($"{nameof(id)} expected");
 
-            this.Name = name;
-            this.Value = value;
+            this.Id = id;
+            this.Value = value ?? throw new ArgumentNullException($"{nameof(value)}");
+            this.DisplayName = displayName;
         }
 
-        public string Name { get; }
+        public string Id { get; }
 
         public string Value { get; }
+
+        public string DisplayName { get; }
     }
 }

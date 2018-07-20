@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NBitcoin;
@@ -68,8 +67,6 @@ namespace Stratis.Bitcoin.Features.LightWallet
 
         private readonly WalletSettings walletSettings;
 
-        private readonly IStatisticsService statisticsService;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="LightWalletFeature"/> class.
         /// </summary>
@@ -97,8 +94,7 @@ namespace Stratis.Bitcoin.Features.LightWallet
             BroadcasterBehavior broadcasterBehavior,
             ILoggerFactory loggerFactory,
             NodeSettings nodeSettings,
-            WalletSettings walletSettings, 
-            IStatisticsService statisticsService)
+            WalletSettings walletSettings)
         {
             this.walletSyncManager = walletSyncManager;
             this.walletManager = walletManager;
@@ -113,7 +109,6 @@ namespace Stratis.Bitcoin.Features.LightWallet
             this.loggerFactory = loggerFactory;
             this.nodeSettings = nodeSettings;
             this.walletSettings = walletSettings;
-            this.statisticsService = statisticsService;
         }
 
         /// <summary>
@@ -178,56 +173,70 @@ namespace Stratis.Bitcoin.Features.LightWallet
         /// <inheritdoc />
         public void AddNodeStats(StringBuilder benchLog)
         {
-            var statistics = this.NodeStatistics.ToList();
+            IEnumerable<IStatistic> statistics = this.NodeStatistics.ToList();
             if (statistics.IsEmpty())
                 return;
 
             IStatistic height = statistics.First(), hashBlock = statistics.Last();
 
-            benchLog.AppendLine($"{height.Name}: ".PadRight(LoggingConfiguration.ColumnLength + 1) + height.Value.PadRight(8) +
-                                (!string.IsNullOrEmpty(hashBlock.Value) ? $"{hashBlock.Name}".PadRight(LoggingConfiguration.ColumnLength - 1) + hashBlock.Value : string.Empty));            
+            benchLog.AppendLine($"{height.Id}: ".PadRight(LoggingConfiguration.ColumnLength + 1) + height.Value.PadRight(8) +
+                                (!string.IsNullOrEmpty(hashBlock.Value) ? $"{hashBlock.Id}".PadRight(LoggingConfiguration.ColumnLength - 1) + hashBlock.Value : string.Empty));            
 
-        }
+        }        
 
         public IEnumerable<IStatistic> NodeStatistics
         {
             get
-            {                
+            {
                 var manager = this.walletManager as WalletManager;
                 if (manager != null)
                 {
                     int height = manager.LastBlockHeight();
                     ChainedHeader block = this.chain.GetBlock(height);
                     uint256 hashBlock = block == null ? 0 : block.HashBlock;
-
-                    yield return new Statistic("LightWallet.Height", manager.ContainsWallets ? height.ToString() : "No Wallet");
-                    yield return new Statistic("LightWallet.Hash", manager.ContainsWallets ? hashBlock.ToString() : string.Empty);
+                    
+                    yield return new Statistic("LightWallet.Height", manager.ContainsWallets ? height.ToString() : "No Wallet", "LightWallet Height");
+                    yield return new Statistic("LightWallet.Hash", manager.ContainsWallets ? hashBlock.ToString() : string.Empty, "LightWallet Hash");
                 }
             }
         }
 
         /// <inheritdoc />
         public void AddFeatureStats(StringBuilder benchLog)
+        {            
+            IStatisticGroup statisticsGroup = this.FeatureStatistics;
+            if (statisticsGroup == null)
+                return;
+
+            benchLog.AppendLine();
+            benchLog.AppendLine("======Wallets======");
+
+            foreach (IStatisticGroup walletGroup in statisticsGroup.Groups)
+                benchLog.AppendLine("Wallet: " + (walletGroup.GroupName + ",").PadRight(LoggingConfiguration.ColumnLength) + " Confirmed balance: " + walletGroup.Statistics.First().Value);
+        }
+
+        public IStatisticGroup FeatureStatistics
         {
-            IEnumerable<string> walletNames = this.walletManager.GetWalletsNames();
-
-            if (walletNames.Any())
+            get
             {
-                benchLog.AppendLine();
-                benchLog.AppendLine("======Wallets======");
-                                
-                foreach (string walletName in walletNames)
+                IEnumerable<string> walletNames = this.walletManager.GetWalletsNames().ToList();
+                if (walletNames.Any())
                 {
-                    IEnumerable<UnspentOutputReference> items = this.walletManager.GetSpendableTransactionsInWallet(walletName, 1);
-                    var confirmedBalance = new Money(items.Sum(s => s.Transaction.Amount)).ToString();
-                    benchLog.AppendLine("Wallet: " + (walletName + ",").PadRight(LoggingConfiguration.ColumnLength) + " Confirmed balance: " + confirmedBalance);
+                    var statisticGroup = new StatisticGroup("Wallets");
+                    foreach (string walletName in walletNames)
+                    {
+                        IEnumerable<UnspentOutputReference> items = this.walletManager.GetSpendableTransactionsInWallet(walletName, 1);
+                        var confirmedBalance = new Money(items.Sum(s => s.Transaction.Amount)).ToString();
 
-                    IStatisticGroup group = this.statisticsService.LightWalletStatistics.Apply(walletName);
-                    group.Apply(new Statistic("name", walletName));
-                    group.Apply(new Statistic("Confirmed balance", confirmedBalance));
+                        statisticGroup.AddGroup(walletName)
+                                      .Apply(new Statistic("confirmedBalance", confirmedBalance, "Confirmed Balance"));
+                    }
+                    return statisticGroup;
                 }
+
+                return null;
             }
-        }        
+        }
     }
 
     /// <summary>

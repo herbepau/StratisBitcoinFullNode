@@ -233,11 +233,11 @@ namespace Stratis.Bitcoin.Features.BlockStore
         /// <summary>Shows the stats to the console.</summary>
         public void ShowStats(StringBuilder benchLog)
         {
-            var statistics = this.Statistics.ToList();
-            if (statistics.IsEmpty())
+            var group = this.Statistics;
+            if (group == null)
                 return;
             
-            IStatistic pendingBlocks = statistics.First(), batchSize = statistics.Last();
+            IStatistic pendingBlocks = group.Statistics.First(), batchSize = group.Statistics.Last();
 
             benchLog.AppendLine();
             benchLog.AppendLine("======BlockStore======");
@@ -245,15 +245,20 @@ namespace Stratis.Bitcoin.Features.BlockStore
             benchLog.AppendLine($"Batch Size: {batchSize.Value}");
         }
 
-        public IEnumerable<IStatistic> Statistics
+        public IStatisticGroup Statistics
         {
             get
             {
                 if (this.storeTip != null)
                 {
-                    yield return new Statistic("Pending Blocks", $"{this.batch.Count}");
-                    yield return new Statistic("Batch Size", $"{this.currentBatchSizeBytes / 1000} kb / {BatchThresholdSizeBytes / 1000} kb");
+                    return new StatisticGroup("BlockStore", new []
+                    {
+                        new Statistic("pendingBlocks", $"{this.batch.Count}", "Pending Blocks"),
+                        new Statistic("batchSize", $"{this.currentBatchSizeBytes / 1000} kb / {BatchThresholdSizeBytes / 1000} kb", "Batch Size")
+                    });
                 }
+
+                return null;
             }
         }
 

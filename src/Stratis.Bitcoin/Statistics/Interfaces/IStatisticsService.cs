@@ -4,14 +4,12 @@ namespace Stratis.Bitcoin.Statistics.Interfaces
 {
     public interface IStatisticsService
     {
-        void Apply(string groupName, IStatistic statistic);
+        bool AddGroup(IStatisticGroup group);
 
-        void Apply(string groupName, IEnumerable<IStatistic> statistics);
+        IStatisticGroup Apply(string groupName, IStatistic statistic);
+
+        IStatisticGroup Apply(string groupName, IEnumerable<IStatistic> statistics);
 
         IEnumerable<IStatisticGroup> Groups { get; }
-
-        IStatisticsTable LightWalletStatistics { get; }
-
-        IStatisticsTable WalletStatistics { get; }
     }
 }

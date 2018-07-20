@@ -71,8 +71,7 @@ namespace Stratis.Bitcoin.Features.Wallet
             IConnectionManager connectionManager,
             BroadcasterBehavior broadcasterBehavior,
             NodeSettings nodeSettings,
-            WalletSettings walletSettings,
-            IStatisticsService statisticsService)
+            WalletSettings walletSettings)
         {
             this.walletSyncManager = walletSyncManager;
             this.walletManager = walletManager;
@@ -82,7 +81,6 @@ namespace Stratis.Bitcoin.Features.Wallet
             this.broadcasterBehavior = broadcasterBehavior;
             this.nodeSettings = nodeSettings;
             this.walletSettings = walletSettings;
-            this.statisticsService = statisticsService;
         }
 
         /// <summary>
@@ -107,29 +105,29 @@ namespace Stratis.Bitcoin.Features.Wallet
         /// <inheritdoc />
         public void AddNodeStats(StringBuilder benchLogs)
         {
-            var statistics = this.NodeStatistics.ToList();
+            var statistics = this.NodeStatistics;
             if (statistics.IsEmpty())
                 return;
 
             IStatistic height = statistics.First(), hashBlock = statistics.Last();
 
-            benchLogs.AppendLine($"{height.Name}: ".PadRight(LoggingConfiguration.ColumnLength + 1) + height.Value.PadRight(8) +
-                                (!string.IsNullOrEmpty(hashBlock.Value) ? $"{hashBlock.Name}".PadRight(LoggingConfiguration.ColumnLength - 1) + hashBlock.Value : string.Empty));
+            benchLogs.AppendLine($"{height.Id}: ".PadRight(LoggingConfiguration.ColumnLength + 1) + height.Value.PadRight(8) +
+                                (!string.IsNullOrEmpty(hashBlock.Value) ? $"{hashBlock.Id}".PadRight(LoggingConfiguration.ColumnLength - 1) + hashBlock.Value : string.Empty));
         }
 
         public IEnumerable<IStatistic> NodeStatistics
         {
             get
             {                
-                var walletManager = this.walletManager as WalletManager;                
+                var walletManager = this.walletManager as WalletManager;
                 if (walletManager != null)
                 {
                     int height = walletManager.LastBlockHeight();
                     ChainedHeader block = this.chain.GetBlock(height);
                     uint256 hashBlock = block == null ? 0 : block.HashBlock;
 
-                    yield return new Statistic("Wallet.Height", walletManager.ContainsWallets ? height.ToString() : "No Wallet");
-                    yield return new Statistic("Wallet.Hash", walletManager.ContainsWallets ? hashBlock.ToString() : string.Empty);
+                    yield return new Statistic("Wallet.Height", walletManager.ContainsWallets ? height.ToString() : "No Wallet", "Wallet Height");
+                    yield return new Statistic("Wallet.Hash", walletManager.ContainsWallets ? hashBlock.ToString() : string.Empty, "Wallet Hash");
                 }
             }
         }
@@ -137,23 +135,37 @@ namespace Stratis.Bitcoin.Features.Wallet
         /// <inheritdoc />
         public void AddFeatureStats(StringBuilder benchLog)
         {
-            IEnumerable<string> walletNames = this.walletManager.GetWalletsNames();
+            IStatisticGroup statisticsGroup = this.FeatureStatistics;
+            if (statisticsGroup == null)
+                return;
 
-            if (walletNames.Any())
+            benchLog.AppendLine();
+            benchLog.AppendLine("======Wallets======");
+
+            foreach (IStatisticGroup walletGroup in statisticsGroup.Groups)
+                benchLog.AppendLine("Wallet: " + (walletGroup.GroupName + ",").PadRight(LoggingConfiguration.ColumnLength) + " Confirmed balance: " + walletGroup.Statistics.First().Value);
+        }
+
+        public IStatisticGroup FeatureStatistics
+        {
+            get
             {
-                benchLog.AppendLine();
-                benchLog.AppendLine("======Wallets======");
-
-                foreach (string walletName in walletNames)
+                IEnumerable<string> walletNames = this.walletManager.GetWalletsNames().ToList();
+                if (walletNames.Any())
                 {
-                    IEnumerable<UnspentOutputReference> items = this.walletManager.GetSpendableTransactionsInWallet(walletName, 1);
-                    var confirmedBalance = new Money(items.Sum(s => s.Transaction.Amount)).ToString();
-                    benchLog.AppendLine("Wallet: " + (walletName + ",").PadRight(LoggingConfiguration.ColumnLength) + " Confirmed balance: " + confirmedBalance);
+                    var statisticGroup = new StatisticGroup("Wallets");
+                    foreach (string walletName in walletNames)
+                    {
+                        IEnumerable<UnspentOutputReference> items = this.walletManager.GetSpendableTransactionsInWallet(walletName, 1);
+                        var confirmedBalance = new Money(items.Sum(s => s.Transaction.Amount)).ToString();
 
-                    IStatisticGroup group = this.statisticsService.WalletStatistics.Apply(walletName);
-                    group.Apply(new Statistic("name", walletName));
-                    group.Apply(new Statistic("Confirmed balance", confirmedBalance));
+                        statisticGroup.AddGroup(walletName)
+                                      .Apply(new Statistic("ConfirmedBalance", confirmedBalance, "Confirmed Balance"));
+                    }
+                    return statisticGroup;
                 }
+
+                return null;
             }
         }
 

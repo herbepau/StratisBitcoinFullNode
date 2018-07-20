@@ -2,7 +2,9 @@
 {
     public interface IStatistic
     {
-        string Name { get; }
+        string Id { get; }
+
+        string DisplayName { get; }
 
         string Value { get; }
     }

@@ -16,6 +16,8 @@ using Stratis.Bitcoin.Configuration.Settings;
 using Stratis.Bitcoin.P2P;
 using Stratis.Bitcoin.P2P.Peer;
 using Stratis.Bitcoin.P2P.Protocol.Payloads;
+using Stratis.Bitcoin.Statistics;
+using Stratis.Bitcoin.Statistics.Interfaces;
 using Stratis.Bitcoin.Utilities;
 using Stratis.Bitcoin.Utilities.Extensions;
 
@@ -55,6 +57,8 @@ namespace Stratis.Bitcoin.Connection
         string GetNodeStats();
 
         string GetStats();
+
+        IStatisticGroup NodeStatistics { get; }
 
         /// <summary>Initializes and starts each peer connection as well as peer discovery.</summary>
         void Initialize();
@@ -296,22 +300,48 @@ namespace Stratis.Bitcoin.Connection
 
         public string GetNodeStats()
         {
-            var builder = new StringBuilder();
+            var stats = new StringBuilder();
 
-            foreach (INetworkPeer peer in this.ConnectedPeers)
+            foreach (var group in this.NodeStatistics.Groups)
             {
-                var connectionManagerBehavior = peer.Behavior<ConnectionManagerBehavior>();
-                var chainHeadersBehavior = peer.Behavior<ChainHeadersBehavior>();
+                stats.Append(
+                    "Peer:" + (group["peer"].Value + ", ").PadRight(LoggingConfiguration.ColumnLength + 15) +
+                    (" connected:" + group["connected"].Value + ",").PadRight(
+                        LoggingConfiguration.ColumnLength + 7) +
+                    (" height:" + group["height"].Value + ",").PadRight(LoggingConfiguration.ColumnLength + 2) +
+                    " agent:" + group["agent"].Value
+                );
+            }            
 
-                string agent = peer.PeerVersion != null ? peer.PeerVersion.UserAgent : "[Unknown]";
-                builder.AppendLine(
-                    "Peer:" + (peer.RemoteSocketEndpoint + ", ").PadRight(LoggingConfiguration.ColumnLength + 15) +
-                    (" connected:" + (connectionManagerBehavior.Inbound ? "inbound" : "outbound") + ",").PadRight(LoggingConfiguration.ColumnLength + 7) +
-                    (" height:" + (chainHeadersBehavior.ExpectedPeerTip != null ? chainHeadersBehavior.ExpectedPeerTip.Height.ToString() : peer.PeerVersion?.StartHeight.ToString() ?? "unknown") + ",").PadRight(LoggingConfiguration.ColumnLength + 2) +
-                    " agent:" + agent);
+            return stats.ToString();
+        }
+
+        public IStatisticGroup NodeStatistics
+        {
+            get
+            {       
+                var peersGroup = new StatisticGroup("Peers");
+
+                foreach (INetworkPeer peer in this.ConnectedPeers)
+                {
+                    var connectionManagerBehavior = peer.Behavior<ConnectionManagerBehavior>();
+                    var chainHeadersBehavior = peer.Behavior<ChainHeadersBehavior>();
+
+                    var height = (chainHeadersBehavior.ExpectedPeerTip != null
+                        ? chainHeadersBehavior.ExpectedPeerTip.Height.ToString()
+                        : peer.PeerVersion?.StartHeight.ToString() ?? "unknown");
+
+                    peersGroup.AddGroup("peer").Apply(new []
+                    {
+                        new Statistic("peer", peer.RemoteSocketEndpoint.ToString(), "Peer"),
+                        new Statistic("connected", connectionManagerBehavior.Inbound ? "inbound" : "outbound", "Connected"),
+                        new Statistic("height", height, "Height"),
+                        new Statistic("agent", peer.PeerVersion != null ? peer.PeerVersion.UserAgent : "[Unknown]", "Agent")
+                    });
+                }
+
+                return peersGroup;
             }
-
-            return builder.ToString();
         }
 
         private string ToKBSec(ulong bytesPerSec)

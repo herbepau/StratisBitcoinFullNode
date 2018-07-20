@@ -49,8 +49,6 @@ namespace Stratis.Bitcoin.Features.MemoryPool
         /// <summary>Settings for the node.</summary>
         private readonly NodeSettings nodeSettings;
 
-        private readonly IStatisticsService statisticsService;
-
         /// <summary>
         /// Constructs a memory pool feature.
         /// </summary>
@@ -70,8 +68,7 @@ namespace Stratis.Bitcoin.Features.MemoryPool
             MempoolManager mempoolManager,
             NodeSettings nodeSettings,
             ILoggerFactory loggerFactory,
-            MempoolSettings mempoolSettings,
-            IStatisticsService statisticsService)
+            MempoolSettings mempoolSettings)
         {
             this.signals = signals;
             this.connectionManager = connectionManager;
@@ -81,7 +78,6 @@ namespace Stratis.Bitcoin.Features.MemoryPool
             this.mempoolLogger = loggerFactory.CreateLogger(this.GetType().FullName);
             this.mempoolSettings = mempoolSettings;
             this.nodeSettings = nodeSettings;
-            this.statisticsService = statisticsService;
         }
 
         public void AddFeatureStats(StringBuilder benchLogs)
@@ -92,8 +88,26 @@ namespace Stratis.Bitcoin.Features.MemoryPool
                 benchLogs.AppendLine("=======Mempool=======");
                 var perfCounter = this.mempoolManager.PerformanceCounter.ToString();
                 benchLogs.AppendLine(perfCounter);
+            }
+        }
 
-                //this.statisticsService.Apply("Mempool", new Statistic("perfCounter", perfCounter));
+        public IStatisticGroup FeatureStatistics
+        {
+            get
+            {
+                if (this.mempoolManager != null)
+                {
+                    var performanceCounter = this.mempoolManager.PerformanceCounter;                    
+
+                    return new StatisticGroup("Mempool", new []
+                    {
+                        new Statistic("mempoolSize", performanceCounter.MempoolSize.ToString(), "Mempool Size"),
+                        new Statistic("dynamicSize", (performanceCounter.MempoolDynamicSize/1000) + " kb", "Dynamic Size"),
+                        new Statistic("orphanSize", performanceCounter.MempoolOrphanSize.ToString(), "Orphan Size"), 
+                    });
+                }
+
+                return null;
             }
         }
 
