@@ -18,6 +18,7 @@ using Stratis.Bitcoin.Interfaces;
 using Stratis.Bitcoin.P2P;
 using Stratis.Bitcoin.P2P.Peer;
 using Stratis.Bitcoin.P2P.Protocol.Payloads;
+using Stratis.Bitcoin.SignalR;
 using Stratis.Bitcoin.Signals;
 using Stratis.Bitcoin.Utilities;
 
@@ -108,6 +109,9 @@ namespace Stratis.Bitcoin.Base
         /// <inheritdoc cref="IFinalizedBlockHeight"/>
         private readonly IFinalizedBlockHeight finalizedBlockHeight;
 
+        /// <summary>SignalR service reference.  Allows for real-time streaming of data to interested clients.</summary>
+        private readonly ISignalRService signalRService;
+
         /// <summary>
         /// Initializes a new instance of the object.
         /// </summary>
@@ -143,7 +147,8 @@ namespace Stratis.Bitcoin.Base
             IInitialBlockDownloadState initialBlockDownloadState,
             IPeerBanning peerBanning,
             IPeerAddressManager peerAddressManager,
-            BestChainSelector bestChainSelector)
+            BestChainSelector bestChainSelector,
+            ISignalRService signalRService)
         {
             this.chainState = Guard.NotNull(chainState, nameof(chainState));
             this.chainRepository = Guard.NotNull(chainRepository, nameof(chainRepository));
@@ -154,6 +159,7 @@ namespace Stratis.Bitcoin.Base
             this.chain = Guard.NotNull(chain, nameof(chain));
             this.connectionManager = Guard.NotNull(connectionManager, nameof(connectionManager));
             this.bestChainSelector = bestChainSelector;
+            this.signalRService = signalRService;
             this.peerBanning = Guard.NotNull(peerBanning, nameof(peerBanning));
 
             this.peerAddressManager = Guard.NotNull(peerAddressManager, nameof(peerAddressManager));
@@ -185,6 +191,8 @@ namespace Stratis.Bitcoin.Base
             this.dbreezeSerializer.Initialize(this.chain.Network);
 
             this.StartChainAsync().GetAwaiter().GetResult();
+
+            this.signalRService.StartAsync().GetAwaiter().GetResult();
 
             var connectionParameters = this.connectionManager.Parameters;
             connectionParameters.IsRelay = this.connectionManager.ConnectionSettings.RelayTxes;
@@ -336,6 +344,7 @@ namespace Stratis.Bitcoin.Base
                     services.AddSingleton<ITimeSyncBehaviorState, TimeSyncBehaviorState>();
                     services.AddSingleton<IAsyncLoopFactory, AsyncLoopFactory>();
                     services.AddSingleton<NodeDeployments>();
+                    services.AddSingleton<ISignalRService, SignalRService>();
 
                     // Connection
                     services.AddSingleton<INetworkPeerFactory, NetworkPeerFactory>();
